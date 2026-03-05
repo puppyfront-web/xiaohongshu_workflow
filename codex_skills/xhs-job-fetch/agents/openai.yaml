@@ -1,0 +1,5 @@
+version: 1
+interface:
+  display_name: xhs-fetch-job
+  short_description: 按用户输入的主题、时间和格式执行小红书抓取，并返回结果文件路径。
+  default_prompt: 你正在执行 xhs-fetch-job。先检查用户是否给了主题、时间约束、返回格式；缺失时先补问，再执行 bash codex_skills/xhs-job-fetch/scripts/xhs_skill.sh all。执行后返回 status、job_log、result_json、report_json、report_markdown，并说明失败原因和下一步。

@@ -1,0 +1,45 @@
+{
+  "title": "AI 信息精选",
+  "topic": "AI",
+  "region": "上海",
+  "time_constraint": "近30天",
+  "output_format": "both",
+  "search_keywords": [
+    "AI 上海",
+    "AI 产品推荐",
+    "AI 工具测评",
+    "AI 应用案例"
+  ],
+  "focus_keywords": [
+    "agent",
+    "工作流",
+    "自动化",
+    "效率工具"
+  ],
+  "priority_rules": {
+    "region": {
+      "keywords": ["上海", "浦东", "徐汇", "闵行"],
+      "weight": 3,
+      "label": "📍 上海"
+    },
+    "topic": {
+      "keywords": ["ai", "大模型", "智能体", "自动化"],
+      "weight": 2,
+      "label": "🧭 主题"
+    }
+  },
+  "must_have": [
+    "实测",
+    "经验",
+    "总结"
+  ],
+  "exclude_signals": [
+    "广告",
+    "抽奖",
+    "互关"
+  ],
+  "top_n": 10,
+  "summary_max_len": 120,
+  "wait_between_search": 2,
+  "push_feishu": true
+}

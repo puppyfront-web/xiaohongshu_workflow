@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.venv/
+venv/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Runtime artifacts
+browser_data/
+logs/
+reports/
+results/
+publish_drafts/
+data/xhs/json/
+latest_report.txt
+temp_output.txt
+login_qrcode.png
+copy_*.txt
+
+# Local binaries
+bin/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

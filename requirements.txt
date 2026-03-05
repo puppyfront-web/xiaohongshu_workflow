@@ -1,0 +1,7 @@
+# Skill-first minimal runtime
+#
+# Current core workflow (`core/job_fetch.py`, `core/workflow.py`, `core/crawler_executor.py`)
+# uses only Python standard library.
+# MCP binary (`xiaohongshu-mcp`) must be installed/configured by the user.
+#
+# If you add optional modules in future, list them here.
