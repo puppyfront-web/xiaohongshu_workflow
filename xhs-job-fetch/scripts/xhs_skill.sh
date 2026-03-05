@@ -3,11 +3,11 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-WORKFLOW_DIR="${WORKFLOW_DIR:-$(cd "${SKILL_DIR}/../.." && pwd)}"
+WORKFLOW_DIR="${WORKFLOW_DIR:-${SKILL_DIR}}"
 
 LOGIN_SCRIPT="${SCRIPT_DIR}/check_login.sh"
 RUN_SCRIPT="${SCRIPT_DIR}/run_once.sh"
-INSTALL_SCRIPT="${WORKFLOW_DIR}/scripts/install.sh"
+INSTALL_SCRIPT="${SCRIPT_DIR}/install.sh"
 ENSURE_MCP_SCRIPT="${SCRIPT_DIR}/ensure_mcp_binary.sh"
 ENV_LOCAL_FILE="${SKILL_DIR}/.env.local"
 
@@ -23,10 +23,10 @@ INSTALL_ARGS=()
 usage() {
   cat <<'EOF'
 用法:
-  bash codex_skills/xhs-job-fetch/scripts/xhs_skill.sh <action> [options]
+  bash scripts/xhs_skill.sh <action> [options]
 
 动作:
-  setup     执行安装初始化（调用 scripts/install.sh）
+  setup     初始化本地配置（调用 scripts/install.sh）
   clarify   打印需求澄清模板（不执行抓取）
   login     执行登录检查（可选 --with-qr）
   run       执行一次抓取
@@ -42,29 +42,25 @@ usage() {
   --with-qr                  login 阶段主动拉起二维码检查
   --skip-login               all 动作跳过 login 阶段
   --mcp-path <path>          setup 动作参数：指定本地 MCP 路径
-  --mcp-url <url>            setup 动作参数：下载 MCP URL
-  --mcp-sha256 <sha256>      setup 动作参数：下载 MCP 的 SHA256
-  --mcp-repo <url>           setup 动作参数：MCP GitHub 仓库（默认 xpzouying/xiaohongshu-mcp）
   --feishu-webhook <url>     setup 动作参数：写入 FEISHU_WEBHOOK_URL
   --feishu-app-id <id>       setup 动作参数：写入 FEISHU_APP_ID
   --feishu-app-secret <sec>  setup 动作参数：写入 FEISHU_APP_SECRET
-  --non-interactive          setup 动作参数：非交互安装
+  --non-interactive          setup 动作参数：非交互模式
 
 示例:
-  bash codex_skills/xhs-job-fetch/scripts/xhs_skill.sh setup
-  bash codex_skills/xhs-job-fetch/scripts/xhs_skill.sh setup --mcp-path /abs/path/to/xiaohongshu-mcp
-  bash codex_skills/xhs-job-fetch/scripts/xhs_skill.sh setup --mcp-url https://example.com/xiaohongshu-mcp --mcp-sha256 <sha256>
-  bash codex_skills/xhs-job-fetch/scripts/xhs_skill.sh clarify
-  bash codex_skills/xhs-job-fetch/scripts/xhs_skill.sh login --with-qr
-  bash codex_skills/xhs-job-fetch/scripts/xhs_skill.sh run \
+  bash scripts/xhs_skill.sh setup
+  bash scripts/xhs_skill.sh setup --mcp-path /abs/path/to/xiaohongshu-mcp
+  bash scripts/xhs_skill.sh clarify
+  bash scripts/xhs_skill.sh login --with-qr
+  bash scripts/xhs_skill.sh run \
     --topic "AI 工具" --time-constraint "近7天" --output-format both --region "上海"
-  bash codex_skills/xhs-job-fetch/scripts/xhs_skill.sh all \
+  bash scripts/xhs_skill.sh all \
     --topic "AI 工具" --time-constraint "近7天" --output-format both --region "上海" \
     --config configs/job_fetch.profile.example.json
 
 说明:
-  - login/run/all 会自动检测运行环境。
-  - 首次使用或未配置 MCP 时，会自动触发 setup。
+  - setup 仅写入本地配置，不会自动安装 MCP。
+  - login/run/all 会在执行前检测 MCP 是否可用。
 EOF
 }
 
@@ -138,7 +134,7 @@ parse_options() {
         SKIP_LOGIN=1
         shift
         ;;
-      --mcp-path|--mcp-url|--mcp-sha256|--mcp-repo|--feishu-webhook|--feishu-app-id|--feishu-app-secret)
+      --mcp-path|--feishu-webhook|--feishu-app-id|--feishu-app-secret)
         if [[ $# -lt 2 || -z "${2:-}" || "${2:-}" == --* ]]; then
           echo "❌ $1 缺少值"
           exit 2
@@ -177,7 +173,16 @@ apply_runtime_env() {
     export JOB_OUTPUT_FORMAT="${OUTPUT_FORMAT}"
   fi
   if [[ -n "${CONFIG_PATH}" ]]; then
-    export JOB_FETCH_CONFIG="${CONFIG_PATH}"
+    local resolved_config
+    resolved_config="${CONFIG_PATH}"
+    if [[ ! -f "${resolved_config}" && "${resolved_config}" != /* ]]; then
+      if [[ -f "${SKILL_DIR}/${resolved_config}" ]]; then
+        resolved_config="${SKILL_DIR}/${resolved_config}"
+      elif [[ -f "${SKILL_DIR}/configs/${resolved_config}" ]]; then
+        resolved_config="${SKILL_DIR}/configs/${resolved_config}"
+      fi
+    fi
+    export JOB_FETCH_CONFIG="${resolved_config}"
   fi
 }
 
@@ -191,7 +196,7 @@ do_clarify() {
 5) 包含词/排除词（可选）
 
 命令示例：
-bash codex_skills/xhs-job-fetch/scripts/xhs_skill.sh all \
+bash scripts/xhs_skill.sh all \
   --topic "AI 工具" --time-constraint "近7天" --output-format both --region "上海" \
   --config configs/job_fetch.profile.example.json
 EOF
@@ -207,9 +212,6 @@ do_setup() {
 
 needs_bootstrap() {
   if [[ ! -f "${ENV_LOCAL_FILE}" ]]; then
-    return 0
-  fi
-  if ! WORKFLOW_DIR="${WORKFLOW_DIR}" bash "${ENSURE_MCP_SCRIPT}" >/dev/null 2>&1; then
     return 0
   fi
   return 1

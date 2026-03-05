@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-WORKFLOW_DIR="${WORKFLOW_DIR:-$(cd "${SKILL_DIR}/../.." && pwd)}"
+WORKFLOW_DIR="${WORKFLOW_DIR:-${SKILL_DIR}}"
 
 load_env_file() {
   local file="$1"
@@ -25,7 +25,7 @@ if [[ ! -f "${ensure_mcp_script}" ]]; then
   exit 2
 fi
 
-if ! resolved_mcp_bin="$(WORKFLOW_DIR="${WORKFLOW_DIR}" bash "${ensure_mcp_script}")"; then
+if ! resolved_mcp_bin="$(bash "${ensure_mcp_script}")"; then
   echo "❌ MCP 二进制准备失败，请先在本机安装并配置 xiaohongshu-mcp。"
   echo "   可直接运行：bash ${SCRIPT_DIR}/xhs_skill.sh setup"
   exit 3
@@ -168,8 +168,8 @@ if with_qr:
 
 print("❌ 当前未登录，请先登录后再执行抓取。")
 print("建议：使用统一入口执行 all 动作，脚本会自动处理登录检查与抓取。")
-print(f"命令: bash {workflow_dir}/codex_skills/xhs-job-fetch/scripts/xhs_skill.sh all --topic 'AI 工具' --time-constraint '近7天' --output-format both")
+print(f"命令: bash {workflow_dir}/scripts/xhs_skill.sh all --topic 'AI 工具' --time-constraint '近7天' --output-format both")
 print("如需只做登录验证并拉起二维码，可运行：")
-print(f"命令: bash {workflow_dir}/codex_skills/xhs-job-fetch/scripts/xhs_skill.sh login --with-qr")
+print(f"命令: bash {workflow_dir}/scripts/xhs_skill.sh login --with-qr")
 sys.exit(1)
 PY

@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-WORKFLOW_DIR="${WORKFLOW_DIR:-$(cd "${SKILL_DIR}/../.." && pwd)}"
+WORKFLOW_DIR="${WORKFLOW_DIR:-${SKILL_DIR}}"
 
 load_env_file() {
   local file="$1"
@@ -25,12 +25,21 @@ effective_time_constraint="${JOB_TIME_CONSTRAINT:-}"
 effective_output_format="${JOB_OUTPUT_FORMAT:-}"
 
 if [[ -n "${JOB_FETCH_CONFIG:-}" ]]; then
-  if [[ ! -f "${JOB_FETCH_CONFIG}" ]]; then
+  resolved_config="${JOB_FETCH_CONFIG}"
+  if [[ ! -f "${resolved_config}" && "${resolved_config}" != /* ]]; then
+    if [[ -f "${SKILL_DIR}/${resolved_config}" ]]; then
+      resolved_config="${SKILL_DIR}/${resolved_config}"
+    elif [[ -f "${SKILL_DIR}/configs/${resolved_config}" ]]; then
+      resolved_config="${SKILL_DIR}/configs/${resolved_config}"
+    fi
+  fi
+  if [[ ! -f "${resolved_config}" ]]; then
     echo "❌ JOB_FETCH_CONFIG 文件不存在: ${JOB_FETCH_CONFIG}"
     exit 2
   fi
+  export JOB_FETCH_CONFIG="${resolved_config}"
   _cfg_fields="$(
-    python3 - "${JOB_FETCH_CONFIG}" <<'PY'
+    python3 - "${resolved_config}" <<'PY'
 import json
 import sys
 
@@ -110,7 +119,7 @@ if [[ ! -f "${ensure_mcp_script}" ]]; then
   exit 2
 fi
 
-if ! resolved_mcp_bin="$(WORKFLOW_DIR="${WORKFLOW_DIR}" bash "${ensure_mcp_script}")"; then
+if ! resolved_mcp_bin="$(bash "${ensure_mcp_script}")"; then
   echo "❌ MCP 二进制准备失败，请先在本机安装并配置 xiaohongshu-mcp。"
   echo "   可直接运行：bash ${SCRIPT_DIR}/xhs_skill.sh setup"
   exit 3
@@ -130,9 +139,10 @@ for v in FEISHU_APP_ID FEISHU_APP_SECRET; do
   fi
 done
 
-if [[ ! -f "${WORKFLOW_DIR}/job_cron_run.sh" ]]; then
+job_cron_script="${SCRIPT_DIR}/job_cron_run.sh"
+if [[ ! -f "${job_cron_script}" ]]; then
   echo "❌ Invalid WORKFLOW_DIR: ${WORKFLOW_DIR}"
-  echo "   job_cron_run.sh not found"
+  echo "   ${job_cron_script} not found"
   exit 2
 fi
 
@@ -171,7 +181,7 @@ if [[ ${#missing_qr_creds[@]} -gt 0 ]]; then
 fi
 
 set +e
-bash "${WORKFLOW_DIR}/job_cron_run.sh"
+WORK_DIR="${WORKFLOW_DIR}" bash "${job_cron_script}"
 status=$?
 set -e
 

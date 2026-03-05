@@ -110,7 +110,6 @@ class CrawlerExecutor:
         ext = ".exe" if suffix.startswith("windows-") else ""
         asset = f"xiaohongshu-mcp-{suffix}{ext}"
         return [
-            self.work_dir / "codex_skills" / "xhs-job-fetch" / "bin" / asset,
             self.work_dir / "bin" / asset,
         ]
 
